@@ -4,7 +4,14 @@ const path = require("path")
 const app = express()
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'))
+    res.sendFile(path.join(__dirname, 'index.html'), err => {
+        if (err) {
+          console.log(err)
+          res.status(err.status).end()
+        } else {
+          console.log('Send index.html')
+        }
+    })
 })
 
 app.get('/api/whoami', (req, res) => {
