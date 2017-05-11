@@ -2,6 +2,7 @@ const express = require("express")
 const path = require("path")
 
 const app = express()
+const port = process.env.PORT || 8080
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'), err => {
@@ -29,5 +30,4 @@ app.get('/api/whoami', (req, res) => {
     res.json(info)
 })
 
-
-app.listen(8080)
+app.listen(port, console.log('Listening on port: ' + port))
