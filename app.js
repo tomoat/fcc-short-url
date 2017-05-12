@@ -1,90 +1,95 @@
 const express = require("express")
 const path = require("path")
+const mongodb = require("mongodb")
 const mongoose = require("mongoose")
+const validUrl = require('valid-url')
 
 const app = express()
 const port = process.env.PORT || 8080
 const mongoURL = process.env.MONGOLAB_URL || 'mongodb://localhost:27017/url-short'
 
-mongoose.connect(mongoURL);
-mongoose.connection.on('error', function(err) {
-    console.error('MongoDB connection error: ' + err);
-    process.exit(-1);
-  }
-);
-
-const urlList = require('./schema.js')
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'), err => {
-        if (err) {
-          console.log(err)
-          res.status(err.status).end()
-        } else {
-          console.log('Send index.html')
+mongodb.MongoClient.connect(mongoURL, (err, db) => {
+    if (err) {
+        throw new Error('Database failed to connect!');
+    } else {
+        console.log('Successfully connected to MongoDB on port 27017.');
+    }
+    db.createCollection("sites", {
+        capped: true,
+        size: 5242880,
+        max: 5000
+    })
+    
+    app.get('/', (req, res) => {
+        res.sendFile(path.join(__dirname, 'index.html'), err => {
+            if (err) {
+              console.log(err)
+              res.status(err.status).end()
+            } else {
+              console.log('Send index.html')
+            }
+        })
+    })
+    app.get('/:url', (req, res) => {
+        const url = process.env.APP_URL + req.params.url;
+        if (url != process.env.APP_URL + 'favicon.ico') {
+            // findURL(url, db, res);
+            const sites = db.collection('sites');
+            sites.findOne({
+              "short_url": url
+            }, function(err, result) {
+              if (err) throw err;
+             
+              if (result) {
+                
+                console.log('Found ' + result)
+                console.log('Redirecting to: ' + result.original_url)
+                res.redirect(result.original_url)
+              } else {
+                res.send({
+                    "error": "This url is not on the database."
+                })
+              }
+            })
         }
     })
-})
-
-
-// Lookup a shortened URL
-app.get('/:id', function(req, res) {
-  var id = parseInt(req.params.id,10);
-  if(Number.isNaN(id)) {
-    res.status(404).send("Invalid Short URL");
-  } else {
-    urlList.find({id: id}, function (err, docs) {
-      if (err) res.status(404).send(err);
-      if (docs && docs.length) {
-        res.redirect(docs[0].url);
-      } else {
-        res.status(404).send("Invalid Short URL");
-      }
-    });
-  }
-});
-
-
-// create a new shortened URL
-app.get('/new/*?', (req,res) => {
-  const validUrl = require('valid-url');
-  const theUrl = req.params[0];
-
-  // Validate the URL
-  if(theUrl && validUrl.isUri(theUrl)) {
-    // Search for URL first
-    urlList.find({url: theUrl}, function (err, docs) {
-      if(docs && docs.length) {
-        res.status(201).json({
-          "original_url": theUrl,
-          "short_url": "http://fccp-short-url.herokuapp.com/" + docs[0].id
+    
+    app.get('/new/:url*', (req, res) => {
+        const url = req.url.slice(5)
+        console.log(url)
+        let urlObj = {}
+    
+        if (validUrl.isUri(url)) {
+          urlObj = {
+            "original_url": url,
+            "short_url": process.env.APP_URL + linkGen()
+          };
+          res.send(urlObj);
+          save(urlObj, db);
+        } else {
+          urlObj = {
+            "error": "Wrong url format, make sure you have a valid protocol and real site."
+          };
+          res.send(urlObj);
+        }
+    })
+    
+    function linkGen() {
+        // Generates random four digit number for link
+        var num = Math.floor(100000 + Math.random() * 900000);
+        return num.toString().substring(0, 4);
+    }
+    
+    function save(obj, db) {
+        
+        var sites = db.collection('sites');
+        sites.save(obj, function(err, result) {
+          if (err) throw err;
+          console.log('Saved ' + result);
         });
-      }
+    }
+    
+    app.listen(port, function(){
+      console.log("Listening on port: " + port);
     });
-
-    // If it's not found, create a new one
-    urlList.create({url: theUrl}, function (err, myUrl) {
-      if (err) {
-        return handleError(res, err);
-      }
-      return res.status(201).json({
-        "original_url": theUrl,
-        "short_url": "http://fccp-short-url.herokuapp.com/" + myUrl.id
-      });
-    });
-  } else {
-    res.status(400).json({
-      error: "URL Invalid"
-    });
-  }
-
-});
-
-// Error Handler
-function handleError(res, err) {
-  return res.status(500).send(err);
-}
-
-app.listen(port, function(){
-  console.log("Listening on port: " + port);
-});
+})
