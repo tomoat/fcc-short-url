@@ -1,22 +1,24 @@
 {
-  "name": "fcc-header-parser",
+  "name": "fcc-short-url",
   "version": "1.0.0",
-  "description": "Request Header Parser Microservice",
+  "description": "URL Shortener Microservice",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tomoat/fcc-header-parser.git"
+    "url": "git+https://github.com/tomoat/fcc-short-url.git"
   },
   "author": "tomoat",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/tomoat/fcc-header-parser/issues"
+    "url": "https://github.com/tomoat/fcc-short-url/issues"
   },
-  "homepage": "https://github.com/tomoat/fcc-header-parser#readme",
+  "homepage": "https://github.com/tomoat/fcc-short-url#readme",
   "dependencies": {
-    "express": "^4.15.2"
+    "express": "^4.15.2",
+    "mongoose": "^4.9.8",
+    "valid-url": "^1.0.9"
   }
 }
