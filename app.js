@@ -1,7 +1,6 @@
 const express = require("express")
 const path = require("path")
 const mongodb = require("mongodb")
-const mongoose = require("mongoose")
 const validUrl = require('valid-url')
 
 const app = express()
